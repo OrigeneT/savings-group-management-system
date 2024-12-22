@@ -1,0 +1,28 @@
+{% extends "custom_layout.html" %}
+{% block title %}Member Contribution{% endblock %}
+
+{% block content %}
+    <h1>Update Contribution</h1>
+    <form method="POST" action="{{ url_for('contribute') }}">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.member.label }}<br>
+            {{ form.member() }}
+        </p>
+        <p>
+            {{ form.month.label }}<br>
+            {{ form.month(size=32) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+            {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+{% endblock %}
+

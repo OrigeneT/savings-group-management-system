@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Include Bootstrap for easy styling -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Include DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <!-- Include jQuery (required by DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- Include JavaScript for chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <title>{% block title %}Dashboard{% endblock %}</title>
+</head>
+<body>
+
+<div class="d-flex" id="wrapper">
+    <!-- Sidebar -->
+    <div class="bg-light border-right" id="sidebar-wrapper">
+        <div class="sidebar-header text-center py-4">
+            <h4 class="logo-text">UBUMWE FAMILY</h4>
+        </div>
+        <div class="list-group list-group-flush">
+            <a href="{{ url_for('home') }}" class="list-group-item list-group-item-action">Dashboard</a>
+            <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">Member Registration</a>
+            <a href="{{ url_for('contribute') }}" class="list-group-item list-group-item-action">Update Contributions</a>
+            <a href="#" class="list-group-item list-group-item-action">Loan Provision</a>
+            <a href="#" class="list-group-item list-group-item-action">Loan Payment</a>
+            <a href="#" class="list-group-item list-group-item-action">Logout</a>
+        </div>
+    </div>
+
+    <!-- Page Content -->
+    <div id="page-content-wrapper">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+            <button class="btn btn-primary" id="menu-toggle" style="background: #87CEEB">Menu</button>
+        </nav>
+        <div class="container-fluid mt-4">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+
+<footer>
+    <p class="copyright"> Developed by Prime Analytics Ltd </p>
+</footer>
+
+</body>
+</html>
+
+
+<script>
+    document.getElementById("menu-toggle").addEventListener("click", function () {
+        const wrapper = document.getElementById("wrapper");
+        wrapper.classList.toggle("toggled");
+    });
+</script>

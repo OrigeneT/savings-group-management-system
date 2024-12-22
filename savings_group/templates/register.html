@@ -1,0 +1,101 @@
+{% extends "custom_layout.html" %}
+
+{% block title %}Member Registration{% endblock %}
+
+{% block content %}
+
+<h1>Register New Member</h1>
+<form method="POST" action="{{ url_for('register') }}" class="row g-3">
+    {{ form.hidden_tag() }}
+
+    <div class="col-md-2">
+        <label for="member_id" class="form-label">{{ form.member_id.label }}</label>
+        {{ form.member_id(class="form-control", id="member_id") }}
+    </div>
+
+    <div class="col-md-2">
+        <label for="first_name" class="form-label">{{ form.first_name.label }}</label>
+        {{ form.first_name(class="form-control", id="first_name") }}
+    </div>
+
+    <div class="col-md-2">
+        <label for="last_name" class="form-label">{{ form.last_name.label }}</label>
+        {{ form.last_name(class="form-control", id="last_name") }}
+    </div>
+
+    <div class="col-md-2">
+        <label for="phone" class="form-label">{{ form.phone.label }}</label>
+        {{ form.phone(class="form-control", id="phone") }}
+    </div>
+
+    <div class="col-md-2">
+        <label for="nber_of_accounts" class="form-label">{{ form.nber_of_accounts.label }}</label>
+        {{ form.nber_of_accounts(class="form-control", id="nber_of_accounts") }}
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+        {{ form.submit(class="btn btn-primary w-100") }}
+    </div>
+</form>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+{% endwith %}
+
+<div class="mt-4">
+    <h3 style="font-size: 20px;  font-weight: 500;">Registered Members</h3>
+    <table id="AllMemberTable" class="table table-bordered" style="font-size: 0.85em; height: 30px; font-weight: 300;">
+        <thead>
+            <tr>
+                <th>Member ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Phone</th>
+                <th>Number of Accounts</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Dynamic rows will be inserted here -->
+            {% for member in members %}
+            <tr>
+                <td>{{ member.id }}</td>
+                <td>{{ member.first_name }}</td>
+                <td>{{ member.last_name }}</td>
+                <td>{{ member.phone }}</td>
+                <td>{{ member.nber_of_accounts }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+$(document).ready(function() {
+    $('#AllMemberTable').DataTable({
+        responsive: true, // Make the table responsive
+        paging: true,    // Disable pagination
+        pageLength: 8,    // Number of rows per page
+        lengthChange: false, // Disable page size dropdown
+        searching: true, // Disable search box
+        info: false,      // Disable "showing X of Y" info
+        ordering: true,  // Disable column sorting
+        language: {
+            paginate: {
+                previous: "&laquo;", // Use arrows for pagination
+                next: "&raquo;"
+            }
+        }
+
+    });
+});
+</script>
+
+
+{% endblock %}

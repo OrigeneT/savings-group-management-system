@@ -1,0 +1,134 @@
+{% extends "custom_layout.html" %}
+
+{% block title %}Overview{% endblock %}
+
+{% block content %}
+    <h1 class="mt-4">Overview</h1>
+    <div class="row">
+        <!-- Cards Section -->
+        <div class="col-lg-3">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">Total Members Registered</div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>{{ metrics.total_members }} Members</span><span>{{ metrics.total_accounts }} Accounts</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">Total Contributions Received</div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>RWF {{ metrics.total_contributions }}</span><span> </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card text-white mb-4" style="background: #78C7C7;" >
+                <div class="card-body">Total Outstanding Contributions</div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>RWF 0</span><span> </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card text-white mb-4" style="background: #F4A460;">
+                <div class="card-body">Late Contributions</div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <span>RWF 20,000</span><span>Penalties: RWF 12,000</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table and Chart Section -->
+    <div class="row">
+        <div class="col-lg-6">
+            <h3 style="font-size: 20px;  font-weight: 300;">Members Details</h3>
+            <table id="MemberTable" class="display" style="font-size: 0.85em; height: 30px; font-weight: 300;">
+                <thead>
+                    <tr style="background: #B3D9D9;">
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Phone</th>
+                        <th>Nber of Accounts</th>
+                        <th>Registration Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                   {% for row in members %}
+                        <tr>
+                            <td>{{ row.first_name }}</td>
+                            <td>{{ row.last_name }}</td>
+                            <td>{{ row.phone }}</td>
+                            <td>{{ row.nber_of_accounts }}</td>
+                            <td>{{ row.date }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="col-lg-6">
+            <h3 style="font-size: 20px;  font-weight: 300;">Contributions Details</h3>
+            <canvas id="loan_2_Chart"></canvas>
+        </div>
+
+    </div>
+
+
+
+    <script>
+    $(document).ready(function() {
+        $('#MemberTable').DataTable({
+            responsive: true, // Make the table responsive
+            paging: true,    // Disable pagination
+            pageLength: 8,    // Number of rows per page
+            lengthChange: false, // Disable page size dropdown
+            searching: false, // Disable search box
+            info: false,      // Disable "showing X of Y" info
+            ordering: false,  // Disable column sorting
+            language: {
+                paginate: {
+                    previous: "&laquo;", // Use arrows for pagination
+                    next: "&raquo;"
+                }
+            }
+
+        });
+    });
+    </script>
+
+    <script>
+        var ctx = document.getElementById('loanChart').getContext('2d');
+        var loanChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Outstanding Loan', 'Total Amount Paid'],
+                datasets: [{
+                    label: 'Amount',
+                    data: [4576286, 2503594],
+                    backgroundColor: ['#f8d7da', '#d4edda']
+                }]
+            }
+        });
+    </script>
+
+    <script>
+        var ctx = document.getElementById('loan_2_Chart').getContext('2d');
+        var loan_2_Chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Cumulative Contributions (Rwf)', 'Late Contributions (Rwf)', 'Penalties Accumulated (Rwf)'],
+                datasets: [{
+                    label: 'Amount',
+                    data: [130000, 20000, 12000],
+                    backgroundColor: ['#DBE9FA', '#d4edda', '#FFA07A']
+                }]
+            }
+        });
+    </script>
+
+
+{% endblock %}
