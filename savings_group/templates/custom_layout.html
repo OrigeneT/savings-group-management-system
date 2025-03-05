@@ -18,41 +18,42 @@
 
     <title>{% block title %}Dashboard{% endblock %}</title>
 </head>
-<body>
+    <body>
 
-<div class="d-flex" id="wrapper">
-    <!-- Sidebar -->
-    <div class="bg-light border-right" id="sidebar-wrapper">
-        <div class="sidebar-header text-center py-4">
-            <h4 class="logo-text">UBUMWE FAMILY</h4>
+        <div class="d-flex" id="wrapper">
+            <!-- Sidebar -->
+            <div class="bg-light border-right" id="sidebar-wrapper">
+                <div class="sidebar-header text-center py-4">
+                    <h4 class="logo-text">UBUMWE FAMILY</h4>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('home') }}" class="list-group-item list-group-item-action">Dashboard</a>
+                    <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">Member Registration</a>
+                    <a href="{{ url_for('contribute') }}" class="list-group-item list-group-item-action">New Contributions</a>
+        <!--            <a href="#" class="list-group-item list-group-item-action">Update Contributions</a>-->
+        <!--            <a href="#" class="list-group-item list-group-item-action">Loan Provision</a>-->
+        <!--            <a href="#" class="list-group-item list-group-item-action">Loan Payment</a>-->
+        <!--            <a href="#" class="list-group-item list-group-item-action">Logout</a>-->
+                </div>
+            </div>
+
+            <!-- Page Content -->
+            <div id="page-content-wrapper">
+                <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+                    <button class="btn btn-primary" id="menu-toggle" style="background: #87CEEB">Menu</button>
+                </nav>
+                <div class="container-fluid mt-4">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
         </div>
-        <div class="list-group list-group-flush">
-            <a href="{{ url_for('home') }}" class="list-group-item list-group-item-action">Dashboard</a>
-            <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">Member Registration</a>
-            <a href="{{ url_for('contribute') }}" class="list-group-item list-group-item-action">Update Contributions</a>
-            <a href="#" class="list-group-item list-group-item-action">Loan Provision</a>
-            <a href="#" class="list-group-item list-group-item-action">Loan Payment</a>
-            <a href="#" class="list-group-item list-group-item-action">Logout</a>
-        </div>
-    </div>
-
-    <!-- Page Content -->
-    <div id="page-content-wrapper">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
-            <button class="btn btn-primary" id="menu-toggle" style="background: #87CEEB">Menu</button>
-        </nav>
-        <div class="container-fluid mt-4">
-            {% block content %}{% endblock %}
-        </div>
-    </div>
-</div>
 
 
-<footer>
-    <p class="copyright"> Developed by Prime Analytics Ltd </p>
-</footer>
+        <footer>
+            <p class="copyright"> Developed by Prime Analytics Ltd </p>
+        </footer>
 
-</body>
+    </body>
 </html>
 
 

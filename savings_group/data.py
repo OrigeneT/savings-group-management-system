@@ -4,6 +4,11 @@ from sqlalchemy import text
 
 def get_list_of_members():
     return db.session.execute(text("SELECT id, first_name, last_name, phone, nber_of_accounts, strftime('%Y-%m-%d %H:%M', date_of_registration) AS date FROM Member"))
+    # data = db.session.execute(text("SELECT * FROM Member"))
+    # print(data.columns)
+    # return data.columns
+def get_list_of_contributions():
+    return db.session.execute(text("SELECT * FROM Contribution"))
 
 def get_total_members():
     return db.session.query(func.count(Member.id)).scalar()

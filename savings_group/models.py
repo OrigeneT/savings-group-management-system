@@ -15,7 +15,7 @@ class Member(db.Model):
     nber_of_accounts = db.Column(db.Integer, nullable=False)
     date_of_registration = db.Column(
         db.DateTime,
-        default=lambda: datetime.now(gmt_plus_2),
+        default=lambda: datetime.now(gmt_plus_2).replace(second=0, microsecond=0),
         nullable=False
     )
 
@@ -25,7 +25,14 @@ class Contribution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.String(16), db.ForeignKey('member.id'), nullable=False)
     month = db.Column(db.String(7), nullable=False)  # Format: YYYY-MM
-    amount = db.Column(db.Float, nullable=False)
-    date_contributed = db.Column(db.Date, default=date.today)
-
+    contrib_type = db.Column(db.String(7), nullable=False) #Either In full and In part
+    contrib_time = db.Column(db.String(7), nullable=False)  # Either In full and In part
+    daily_contr_amount = db.Column(db.Float, nullable=False) #Daily Contribution
+    monthly_contr_amount = db.Column(db.Float, nullable=False) #Monthly Contribution
+    social_contr_amount = db.Column(db.Float, nullable=False) #Social Contribution
+    date_of_record_reg = db.Column(db.DateTime, default=lambda: datetime.now(gmt_plus_2).replace(microsecond=0), nullable=False)
+    late_days = db.Column(db.Integer, nullable=True) #Number of Days the contribution has been late
+    penalty_amount = db.Column(db.Float, nullable=True)  # Total penalties paid
+    total_paid = db.Column(db.Float, nullable=True)  # Total amount paid (contributions + penalties)
+    comment = db.Column(db.String(400), nullable=True) # Any comment the user want to put in
     member = db.relationship('Member', backref=db.backref('contributions', lazy=True))

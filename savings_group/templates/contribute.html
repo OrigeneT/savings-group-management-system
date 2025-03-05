@@ -2,19 +2,109 @@
 {% block title %}Member Contribution{% endblock %}
 
 {% block content %}
-    <h1>Update Contribution</h1>
-    <form method="POST" action="{{ url_for('contribute') }}">
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.member.label }}<br>
-            {{ form.member() }}
-        </p>
-        <p>
-            {{ form.month.label }}<br>
-            {{ form.month(size=32) }}
-        </p>
-        <p>{{ form.submit() }}</p>
-    </form>
+    <h1>New Contribution</h1>
+
+    <div class="row">
+        <div class="col-md-6">
+            <form method="POST" action="{{ url_for('contribute') }}" >
+                {{ form.hidden_tag() }}
+                <div class="row g-3 mt-4">
+
+                    <div class="col-md-8">
+                        <label for="member" class="form-label">{{ form.member.label }}</label>
+                        {{ form.member(class="form-control", id="member") }}
+                    </div>
+                </div>
+                <div class="row g-3 mt-4">
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">{{ form.month.label }}</label>
+                        {{ form.month(class="form-control", id="month") }}
+                    </div>
+
+                     <div class="col-md-4">
+                        <label for="contrib_type" class="form-label">{{ form.contrib_type.label }}</label>
+                        {{ form.contrib_type(class="form-control", id="contrib_type") }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-4">
+                    <div class="col-md-4">
+                        <label for="daily_contr_amount" class="form-label">{{ form.daily_contr_amount.label }}</label>
+                        {{ form.daily_contr_amount(class="form-control", id="daily_contr_amount") }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="monthly_contr_amount" class="form-label">{{ form.monthly_contr_amount.label }}</label>
+                        {{ form.monthly_contr_amount(class="form-control", id="monthly_contr_amount") }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-4">
+                    <div class="col-md-4">
+                        <label for="social_contr_amount" class="form-label">{{ form.social_contr_amount.label }}</label>
+                        {{ form.social_contr_amount(class="form-control", id="social_contr_amount") }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="contrib_time" class="form-label">{{ form.contrib_time.label }}</label>
+                        {{ form.contrib_time(class="form-control", id="contrib_time", onchange="togglePenalties()") }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-4 d-none" id="penaltyField">
+                    <div class="col-md-4">
+                        <label for="late_days" class="form-label">{{ form.late_days.label }}</label>
+                        {{ form.late_days(class="form-control", id="late_days") }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="penalty_amount" class="form-label">{{ form.penalty_amount.label }}</label>
+                        {{ form.penalty_amount(class="form-control", id="penalty_amount") }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-4">
+                    <div class="col-md-4">
+                        <label for="comment" class="form-label">{{ form.comment.label }}</label>
+                        {{ form.comment(class="form-control", id="comment") }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-4">
+                    <div class="col-md-3 d-flex align-items-end">
+                        {{ form.submit(class="btn btn-primary w-100") }}
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <div class="mt-4">
+                <h3 style="font-size: 20px;  font-weight: 500;">Recorded Contributions</h3>
+                <table id="AllContributionsTable" class="table table-bordered" style="font-size: 0.85em; height: 30px; font-weight: 300;">
+                    <thead>
+                        <tr>
+                            <th>Member ID</th>
+                            <th>Month</th>
+                            <th>Payment level</th>
+                            <th>Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamic rows will be inserted here -->
+                        {% for contribution in contributions %}
+                        <tr>
+                            <td>{{ contribution.member_id }}</td>
+                            <td>{{ contribution.month }}</td>
+                            <td>{{ contribution.contrib_type }}</td>
+                            <td>{{ contribution.total_paid }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <ul>
@@ -24,5 +114,39 @@
             </ul>
         {% endif %}
     {% endwith %}
+
+<script>
+    function togglePenalties() {
+        let contribTime = document.getElementById("contrib_time").value;
+        let penaltyField = document.getElementById("penaltyField");
+
+        if (contribTime === "Late") {
+            penaltyField.classList.remove("d-none");
+            penaltyField.classList.add("d-flex");
+        } else {
+            penaltyField.classList.remove("d-flex");
+            penaltyField.classList.add("d-none");
+        }
+    }
+
+    $(document).ready(function() {
+        $('#AllContributionsTable').DataTable({
+            responsive: true, // Make the table responsive
+            paging: true,    // Disable pagination
+            pageLength: 8,    // Number of rows per page
+            lengthChange: false, // Disable page size dropdown
+            searching: true, // Disable search box
+            info: false,      // Disable "showing X of Y" info
+            ordering: true,  // Disable column sorting
+            language: {
+                paginate: {
+                    previous: "&laquo;", // Use arrows for pagination
+                    next: "&raquo;"
+                }
+            }
+        });
+    });
+</script>
+
 {% endblock %}
 
