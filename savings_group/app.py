@@ -1,8 +1,9 @@
 import os
 from http.cookiejar import month
+from datetime import timedelta
 
-from flask import Flask, render_template, redirect, url_for, flash
-from models import db, Member, Contribution
+from flask import Flask, render_template, redirect, url_for, flash, session, request
+from models import db, Member, Contribution, User
 from forms import RegistrationForm, ContributionForm
 from data import get_total_members, get_total_accounts, get_list_of_contributions, get_total_contributions,get_list_of_members, get_recent_contributions
 
@@ -11,11 +12,42 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///savings_group.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'fallback_secret_key')
+app.permanent_session_lifetime = timedelta(minutes=3)
 db.init_app(app)
+
+from functools import wraps
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.check_password(password):
+            session.permanent = True  # this enables the timeout
+            session['user_id'] = user.id
+            session['username'] = user.username
+            return redirect(url_for('home'))
+            # return redirect(url_for('dashboard'))  # or any protected route
+        else:
+            flash("Invalid username or password")
+    return render_template('login.html')
 
 
 @app.route('/')
 @app.route('/home')
+@login_required
 def home():
     metrics = {
         "total_members": get_total_members(),
@@ -29,6 +61,7 @@ def home():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@login_required
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -54,6 +87,7 @@ def register():
 
 
 @app.route('/contribute', methods=['GET', 'POST'])
+@login_required
 def contribute():
     form = ContributionForm()
 
@@ -144,6 +178,25 @@ def contribute():
 
     return render_template('contribute.html', form=form, contributions =get_list_of_contributions())
 
+
+
+@app.route('/update_contributions', methods=['GET', 'POST'])
+@login_required
+def update_contributions():
+
+
+
+    return render_template('update_contributions.html')
+
+
+
+
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 
 if __name__ == '__main__':
