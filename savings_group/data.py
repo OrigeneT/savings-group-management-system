@@ -17,7 +17,7 @@ def get_total_accounts():
     return db.session.query(func.sum(Member.nber_of_accounts)).scalar() or 0
 
 def get_total_contributions():
-    return db.session.query(func.sum(Contribution.amount)).scalar() or 0
+    return db.session.query(func.sum(Contribution.daily_contr_amount) + func.sum(Contribution.monthly_contr_amount) + func.sum(Contribution.social_contr_amount)).scalar() or 0
 
 def get_recent_contributions(limit=5):
     return Contribution.query.order_by(Contribution.date_contributed.desc()).limit(limit).all()

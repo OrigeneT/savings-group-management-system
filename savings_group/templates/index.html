@@ -46,7 +46,11 @@
     <!-- Table and Chart Section -->
     <div class="row">
         <div class="col-lg-6">
-            <h3 style="font-size: 20px;  font-weight: 300;">Members Details</h3>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 style="font-size: 30px; font-weight: 400;">Members Details</h3>
+                <a href="{{ url_for('download_list_of_members') }}" class="btn btn-info"> Download list </a>
+            </div>
+
             <table id="MemberTable" class="display" style="font-size: 0.85em; height: 30px; font-weight: 300;">
                 <thead>
                     <tr style="background: #B3D9D9;">
@@ -69,9 +73,14 @@
                     {% endfor %}
                 </tbody>
             </table>
+<!--            <div class="clearfix">-->
+<!--            <div class="float-left">-->
+<!--                <a href="{{ url_for('download_list_of_members') }}" class="btn btn-primary" style ="background:#17a2b8;">Download list</a>-->
+<!--            </div>-->
+<!--        </div>-->
         </div>
         <div class="col-lg-6">
-            <h3 style="font-size: 20px;  font-weight: 300;">Contributions Details</h3>
+            <h3 style="font-size: 30px;  font-weight: 400;">Contributions Details</h3>
             <canvas id="loan_2_Chart"></canvas>
         </div>
 

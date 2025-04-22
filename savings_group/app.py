@@ -1,8 +1,10 @@
 import os
 from http.cookiejar import month
 from datetime import timedelta
+import pandas as pd
+from io import BytesIO
 
-from flask import Flask, render_template, redirect, url_for, flash, session, request
+from flask import Flask, render_template, redirect, url_for, flash, session, request, send_file
 from models import db, Member, Contribution, User
 from forms import RegistrationForm, ContributionForm
 from data import get_total_members, get_total_accounts, get_list_of_contributions, get_total_contributions,get_list_of_members, get_recent_contributions
@@ -52,7 +54,7 @@ def home():
     metrics = {
         "total_members": get_total_members(),
         "total_accounts": get_total_accounts(),
-        # "total_contributions": get_total_contributions()
+        "total_contributions": get_total_contributions()
     }
 
     return render_template('index.html',
@@ -191,15 +193,55 @@ def update_contributions():
 
 
 
-
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
 
+
+@app.route('/download_list_of_members', methods=['GET', 'POST'])
+@login_required
+def download_list_of_members():
+    df = get_list_of_members()
+    list_of_members = pd.DataFrame(df.fetchall(), columns=df.keys())
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        list_of_members.to_excel(writer, index=False, sheet_name='Members')
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name="Ubumwe group members.xlsx",
+        as_attachment=True
+    )
+
+@app.route('/download_list_of_contributions', methods=['GET', 'POST'])
+@login_required
+def download_list_of_contributions():
+    df = get_list_of_contributions()
+    list_of_contributions = pd.DataFrame(df.fetchall(), columns=df.keys())
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        list_of_contributions.to_excel(writer, index=False, sheet_name='Contributions')
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name="Ubumwe group contributions.xlsx",
+        as_attachment=True
+    )
+
+
+
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+
+

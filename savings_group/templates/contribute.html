@@ -78,7 +78,10 @@
         </div>
         <div class="col-md-6">
             <div class="mt-4">
-                <h3 style="font-size: 20px;  font-weight: 500;">Recorded Contributions</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 30px;  font-weight: 400;">Recorded Contributions</h3>
+                    <a href="{{ url_for('download_list_of_contributions') }}" class="btn" style="background:#17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;"> Download full list</a>
+                </div>
                 <table id="AllContributionsTable" class="table table-bordered" style="font-size: 0.85em; height: 30px; font-weight: 300;">
                     <thead>
                         <tr>
