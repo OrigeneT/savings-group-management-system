@@ -207,7 +207,7 @@ def download_list_of_members():
     list_of_members = pd.DataFrame(df.fetchall(), columns=df.keys())
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         list_of_members.to_excel(writer, index=False, sheet_name='Members')
     output.seek(0)
 
@@ -225,7 +225,7 @@ def download_list_of_contributions():
     list_of_contributions = pd.DataFrame(df.fetchall(), columns=df.keys())
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         list_of_contributions.to_excel(writer, index=False, sheet_name='Contributions')
     output.seek(0)
 
@@ -239,9 +239,13 @@ def download_list_of_contributions():
 
 
 
+# if __name__ == '__main__':
+#     with app.app_context():
+#         db.create_all()
+#     app.run(debug=True)
+
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
-
-
