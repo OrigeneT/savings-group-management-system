@@ -1,0 +1,146 @@
+{% extends "custom_layout.html" %}
+{% block content %}
+<h2>Record New Loan</h2>
+<form method="POST" action="{{ url_for('loans') }}">
+    {{ form.hidden_tag() }}
+    <div class="row mb-3">
+        <div class="col-md-4">
+            {{ form.member.label(class="form-label") }}
+            {{ form.member(class="form-control") }}
+        </div>
+        <div class="col-md-4">
+            {{ form.amount.label(class="form-label") }}
+            {{ form.amount(class="form-control", id="amount") }}
+        </div>
+        <div class="col-md-4">
+            {{ form.repayment_period_months.label(class="form-label") }}
+            {{ form.repayment_period_months(class="form-control", id="repayment_period_months") }}
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            {{ form.status.label(class="form-label") }}
+            {{ form.status(class="form-control") }}
+        </div>
+        <div class="col-md-4">
+            {{ form.first_repayment_date.label(class="form-label") }}
+            {{ form.first_repayment_date(class="form-control",id="first_repayment_date") }}
+        </div>
+        
+    </div>
+    <hr>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label>Final Repayment Deadline</label>
+            <input type="text" id="deadline" class="form-control" readonly>
+        </div>
+        <div class="col-md-4">
+            <label>Interest Rate</label>
+            <input type="text" id="monthly_interest_rate" class="form-control" readonly>
+        </div>
+        <div class="col-md-4">
+            <label>Late Interest Rate</label>
+            <input type="text" id="late_interest_rate" class="form-control" readonly>
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label>Monthly Principal</label>
+            <input type="text" id="expected_monthly_payment" class="form-control" readonly>
+        </div>
+        <div class="col-md-4">
+            <label>Monthly Interests</label>
+            <input type="text" id="monthly_interest_amount" class="form-control" readonly>
+        </div>
+        <div class="col-md-4">
+            <label>Total Repayment Amount</label>
+            <input type="text" id="total_repayment_amount" class="form-control" readonly>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Record Loan</button>
+</form>
+
+
+<hr>
+ <!-- <button type="submit" class="btn btn-primary">Record Loan</button> -->
+<script>
+function updateLoanFields() {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const months = parseInt(document.getElementById('repayment_period_months').value) || 1;
+    const firstRepayment = document.getElementById('first_repayment_date').value;
+    const monthlyInterestRate = 0.05;
+    const lateInterestRate = 0.10;
+
+    // Calculate values
+    const expectedMonthlyPayment = months ? (amount / months) : 0;
+    const monthlyInterestAmount = amount * monthlyInterestRate;
+    const totalRepaymentAmount = (expectedMonthlyPayment + monthlyInterestAmount) * months;
+
+    // Calculate deadline
+    let deadline = '';
+    if (firstRepayment && months) {
+        const date = new Date(firstRepayment);
+        date.setMonth(date.getMonth() + months);
+        deadline = date.toISOString().split('T')[0];
+    }
+
+    // Update fields
+    document.getElementById('deadline').value = deadline;
+    document.getElementById('monthly_interest_rate').value = (monthlyInterestRate * 100) + '%';
+    document.getElementById('late_interest_rate').value = (lateInterestRate * 100) + '%';
+    document.getElementById('expected_monthly_payment').value = expectedMonthlyPayment.toFixed(2);
+    document.getElementById('monthly_interest_amount').value = monthlyInterestAmount.toFixed(2);
+    document.getElementById('total_repayment_amount').value = totalRepaymentAmount.toFixed(2);
+}
+
+// Attach event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    ['amount', 'repayment_period_months', 'first_repayment_date'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateLoanFields);
+    });
+    updateLoanFields();
+});
+</script>
+
+<hr>
+
+<h2>Loans List</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Member</th>
+            <th>Loan Amount</th>
+            <th>Payment Period (months)</th>
+            <th>First Repayment Date</th>
+            <th>Interest Rate</th>
+            <!-- <th>Late Interest Rate</th> -->
+            <th>Total Repayment</th>
+            <th>Monthly Principal</th>
+            <th>Monthly Interests</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <!-- <th>Created At</th> -->
+        </tr>
+    </thead>
+    <tbody>
+        {% for loan in loans %}
+        <tr>
+            <td>{{ loan.member_id }}</td>
+            <td>{{ loan.amount }}</td>
+            <td>{{ loan.repayment_period_months }}</td>
+            <td>{{ loan.first_repayment_date }}</td>
+            <td>{{ loan.monthly_interest_rate }}</td>
+            <!-- <td>{{ loan.late_interest_rate }}</td> -->
+            <td>{{ loan.total_repayment_amount }}</td>
+            <td>{{ loan.expected_monthly_payment }}</td>
+            <td>{{ loan.monthly_interest_amount }}</td>
+            <td>{{ loan.deadline }}</td>
+            <td>{{ loan.status }}</td>
+            <!-- <td>{{ loan.created_at }}</td> -->
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

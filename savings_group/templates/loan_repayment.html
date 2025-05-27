@@ -1,0 +1,36 @@
+{% extends "custom_layout.html" %}
+{% block title %}Loan Repayment{% endblock %}
+{% block content %}
+<h2>Record Loan Repayment</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div>{{ form.loan.label }} {{ form.loan(class="form-control") }}</div>
+    <div>{{ form.amount.label }} {{ form.amount(class="form-control") }}</div>
+    <div>{{ form.is_late.label }} {{ form.is_late() }}</div>
+    <div>{{ form.submit(class="btn btn-primary") }}</div>
+</form>
+
+<h2 class="mt-4">Repayments List</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Loan ID</th>
+            <th>Amount</th>
+            <th>Paid At</th>
+            <th>Is Late?</th>
+            <th>Interest Applied</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for repayment in repayments %}
+        <tr>
+            <td>{{ repayment.loan_id }}</td>
+            <td>{{ repayment.amount }}</td>
+            <td>{{ repayment.paid_at }}</td>
+            <td>{{ 'Yes' if repayment.is_late else 'No' }}</td>
+            <td>{{ repayment.interest_applied }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

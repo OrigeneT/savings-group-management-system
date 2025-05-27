@@ -1,0 +1,45 @@
+{% extends "custom_layout.html" %}
+{% block title %}Edit Member{% endblock %}
+{% block content %}
+<h1>Update Member Details</h1>
+<form method="POST" action="" class="row g-3">
+    {{ form.hidden_tag() }}
+    <div class="col-md-2">
+        <label for="member_id" class="form-label">{{ form.member_id.label }}</label>
+        {{ form.member_id(class="form-control", id="member_id", readonly=True) }}
+        <!-- <input type="hidden" name="member_id" value="{{ form.member_id.data }}"> -->
+    </div>
+    <div class="col-md-2">
+        <label for="first_name" class="form-label">{{ form.first_name.label }}</label>
+        {{ form.first_name(class="form-control", id="first_name") }}
+    </div>
+    <div class="col-md-2">
+        <label for="last_name" class="form-label">{{ form.last_name.label }}</label>
+        {{ form.last_name(class="form-control", id="last_name") }}
+    </div>
+    <div class="col-md-2">
+        <label for="phone" class="form-label">{{ form.phone.label }}</label>
+        {{ form.phone(class="form-control", id="phone") }}
+    </div>
+
+    <div class="col-md-2">
+        <label for="next_of_kin" class="form-label">{{ form.next_of_kin.label }}</label>
+        {{ form.next_of_kin(class="form-control", id="next_of_kin") }}
+    </div>
+
+    <div class="col-md-2">
+        <label for="nber_of_accounts" class="form-label">{{ form.nber_of_accounts.label }}</label>
+        {{ form.nber_of_accounts(class="form-control", id="nber_of_accounts") }}
+    </div>
+
+    <div class="w-100"></div>
+    <div class="col-md-2 mt-3">
+        <label for="joining_date" class="form-label">{{ form.joining_date.label }}</label>
+        {{ form.joining_date(class="form-control", id="joining_date") }}
+    </div>
+    
+    <div class="col-md-2 mt-5">
+        {{ form.submit(class="btn btn-primary w-100", value="Update") }}
+    </div>
+</form>
+{% endblock %}

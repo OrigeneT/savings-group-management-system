@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, IntegerField, SelectField
+from wtforms import StringField, SubmitField, IntegerField, SelectField, DateField, FloatField, BooleanField
 from wtforms.validators import DataRequired, Length, Regexp, NumberRange, Optional
 
 class RegistrationForm(FlaskForm):
@@ -16,9 +16,11 @@ class RegistrationForm(FlaskForm):
     phone = StringField('Phone',
                     validators=[DataRequired(),
                     Length(min=10, max=10, message="Phone Number must be 10 digits"),
-                    Regexp(r'^07\d{8}$', message="Phone Number must start with '07' only contain numbers")
+                    Regexp(r'^07\d{8}$', message="Phone Number must start with '07' and only contain numbers")
                                 ])
-    nber_of_accounts = IntegerField('Number of accounts', validators=[DataRequired(), NumberRange(min=0, max=5)])
+    nber_of_accounts = IntegerField('Number of Accounts', validators=[DataRequired(), NumberRange(min=0, max=5)])
+    joining_date = DateField('Joining Date', format='%Y-%m-%d', validators=[DataRequired()])
+    next_of_kin = StringField('Next of Kin', validators=[DataRequired()])
     submit = SubmitField('Register')
 
 
@@ -30,11 +32,32 @@ class ContributionForm(FlaskForm):
     )
     contrib_type =SelectField('Contribution level', validators=[DataRequired()])
     contrib_time =SelectField('Is contribution on Time', validators=[DataRequired()])
-    # amount = IntegerField('Contribution amount', validators=[DataRequired()])
-    daily_contr_amount = IntegerField('Daily Contribution Amount', validators=[DataRequired()])
-    monthly_contr_amount = IntegerField('Monthly Contribution Amount', validators=[DataRequired()])
-    social_contr_amount = IntegerField('Social Contribution Amount', validators=[DataRequired()])
+    daily_contr_amount = IntegerField('Daily Contribution', validators=[DataRequired()])
+    monthly_contr_amount = IntegerField('Monthly Contribution', validators=[DataRequired()])
+    social_contr_amount = IntegerField('Social Contribution', validators=[DataRequired()])
     late_days = IntegerField('Number of Late days', validators=[Optional(), NumberRange(min=0, max=100)])
     penalty_amount = IntegerField('Total Penalties', validators=[Optional()])
     comment = StringField('Comments (if any)', validators=[Optional()])
     submit = SubmitField('Save Contribution')
+
+
+
+class LoanForm(FlaskForm):
+    member = SelectField('Member', coerce=str, validators=[DataRequired()])
+    amount = FloatField('Loan Amount', validators=[DataRequired(), NumberRange(min=1)])
+    repayment_period_months = IntegerField('Payment Period (months)', validators=[DataRequired(), NumberRange(min=1, max=12)])
+    first_repayment_date = DateField('First Repayment Date', validators=[DataRequired()])
+    # monthly_installment_deadline = IntegerField('Monthly Installment Deadline (day of month)', validators=[DataRequired(), NumberRange(min=1, max=31)])
+    # deadline = DateField('Final Repayment Deadline', validators=[DataRequired()])
+    status = SelectField('Status', choices=[
+        ('Approved', 'Approved'),
+        ('Under_repayment', 'Under repayment'),
+        ('Fully_paid', 'Fully paid')
+    ], validators=[DataRequired()])
+    submit = SubmitField('Record Loan')
+
+class LoanRepaymentForm(FlaskForm):
+    loan = SelectField('Loan', coerce=int, validators=[DataRequired()])
+    amount = FloatField('Repayment Amount', validators=[DataRequired(), NumberRange(min=1)])
+    is_late = BooleanField('Is Late?')
+    submit = SubmitField('Record Repayment')

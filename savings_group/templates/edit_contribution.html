@@ -1,0 +1,63 @@
+{% extends "custom_layout.html" %}
+{% block title %}Edit Contribution{% endblock %}
+{% block content %}
+<h1>Update Contribution</h1>
+<form method="POST" action="" class="row g-3">
+    {{ form.hidden_tag() }}
+
+    <div class="form-group">
+        <label for="member">{{ form.member.label }}</label>
+        {{ form.member(class="form-control", id="member", disabled=True) }}
+        <input type="hidden" name="member" value="{{ contribution.member_id }}">
+    </div>
+
+    <div class="form-group">
+        <label for="month">{{ form.month.label }}</label>
+        {{ form.month(class="form-control", id="month", disabled=True) }}
+        <input type="hidden" name="month" value="{{ form.month.data }}">
+    </div>
+
+
+    <div class="col-md-4">
+        <label for="contrib_type" class="form-label">{{ form.contrib_type.label }}</label>
+        {{ form.contrib_type(class="form-control", id="contrib_type") }}
+    </div>
+    <div class="col-md-4">
+        <label for="contrib_time" class="form-label">{{ form.contrib_time.label }}</label>
+        {{ form.contrib_time(class="form-control", id="contrib_time") }}
+    </div>
+    <div class="col-md-4">
+        <label for="daily_contr_amount" class="form-label">{{ form.daily_contr_amount.label }}</label>
+        {{ form.daily_contr_amount(class="form-control", id="daily_contr_amount") }}
+    </div>
+    <div class="col-md-4">
+        <label for="monthly_contr_amount" class="form-label">{{ form.monthly_contr_amount.label }}</label>
+        {{ form.monthly_contr_amount(class="form-control", id="monthly_contr_amount") }}
+    </div>
+    <div class="col-md-4">
+        <label for="social_contr_amount" class="form-label">{{ form.social_contr_amount.label }}</label>
+        {{ form.social_contr_amount(class="form-control", id="social_contr_amount") }}
+    </div>
+    <div class="col-md-4">
+        <label for="late_days" class="form-label">{{ form.late_days.label }}</label>
+        {{ form.late_days(class="form-control", id="late_days") }}
+    </div>
+    <div class="col-md-4">
+        <label for="penalty_amount" class="form-label">{{ form.penalty_amount.label }}</label>
+        {{ form.penalty_amount(class="form-control", id="penalty_amount") }}
+    </div>
+    <div class="col-md-12">
+        <label for="comment" class="form-label">{{ form.comment.label }}</label>
+        {{ form.comment(class="form-control", id="comment") }}
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        {{ form.submit(class="btn btn-primary w-100", value="Update") }}
+    </div>
+</form>
+
+{% for field in form %}
+    {% for error in field.errors %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endfor %}
+{% endfor %}
+{% endblock %}
