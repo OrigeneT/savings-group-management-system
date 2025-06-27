@@ -1,0 +1,24 @@
+{% extends "custom_layout.html" %}
+{% block title %}Edit Repayment{% endblock %}
+{% block content %}
+<h2>Edit Repayment</h2>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div>
+        {{ form.loan.label }}
+        {{ form.loan(class="form-control", readonly=True, disabled=True) }}
+        <input type="hidden" name="loan" value="{{ form.loan.data }}">
+    </div>
+    <div>
+        {{ form.amount.label }}
+        {{ form.amount(class="form-control") }}
+    </div>
+    <div>
+        {{ form.is_late.label }}
+        {{ form.is_late() }}
+    </div>
+    <div>
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
+</form>
+{% endblock %}

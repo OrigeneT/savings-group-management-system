@@ -101,6 +101,7 @@ class Loan(db.Model):
     status = db.Column(db.String(32), nullable=False, default='Requested')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     repayments = db.relationship('LoanRepayment', backref='loan', lazy=True)
+    member = db.relationship('Member', backref='loans', lazy=True)
 
 class LoanRepayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

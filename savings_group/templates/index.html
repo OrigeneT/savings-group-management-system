@@ -26,18 +26,18 @@
 
         <div class="col-lg-3">
             <div class="card text-white mb-4" style="background: #78C7C7;" >
-                <div class="card-body">Total Outstanding Contributions</div>
+                <div class="card-body">Total Loans provided and Interests</div>
                 <div class="card-footer d-flex align-items-center justify-content-between">
-                    <span>RWF 0</span><span> </span>
+                    <span>RWF {{ metrics.loans_provided}}</span><span> </span>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-3">
             <div class="card text-white mb-4" style="background: #F4A460;">
-                <div class="card-body">Late Contributions</div>
+                <div class="card-body">Total Loans Amount paid</div>
                 <div class="card-footer d-flex align-items-center justify-content-between">
-                    <span>RWF 20,000</span><span>Penalties: RWF 12,000</span>
+                    <span>RWF {{ metrics.loans_repaid_amount}}</span>
                 </div>
             </div>
         </div>
@@ -73,14 +73,9 @@
                     {% endfor %}
                 </tbody>
             </table>
-<!--            <div class="clearfix">-->
-<!--            <div class="float-left">-->
-<!--                <a href="{{ url_for('download_list_of_members') }}" class="btn btn-primary" style ="background:#17a2b8;">Download list</a>-->
-<!--            </div>-->
-<!--        </div>-->
         </div>
         <div class="col-lg-6">
-            <h3 style="font-size: 30px;  font-weight: 400;">Contributions Details</h3>
+            <h3 style="font-size: 30px;  font-weight: 400;">Contributions Overview</h3>
             <canvas id="loan_2_Chart"></canvas>
         </div>
 
@@ -109,7 +104,7 @@
     });
     </script>
 
-    <script>
+    <!-- <script>
         var ctx = document.getElementById('loanChart').getContext('2d');
         var loanChart = new Chart(ctx, {
             type: 'bar',
@@ -122,7 +117,7 @@
                 }]
             }
         });
-    </script>
+    </script> -->
 
     <script>
         var ctx = document.getElementById('loan_2_Chart').getContext('2d');
@@ -131,10 +126,20 @@
             data: {
                 labels: ['Cumulative Contributions (Rwf)', 'Late Contributions (Rwf)', 'Penalties Accumulated (Rwf)'],
                 datasets: [{
-                    label: 'Amount',
-                    data: [130000, 20000, 12000],
+                    data: [
+                        {{ metrics.total_contributions | default(0) | tojson }},
+                        {{ late_contributions | default(0) | tojson }},
+                        {{ late_contribution_penalties | default(0) | tojson }}
+                    ],
                     backgroundColor: ['#DBE9FA', '#d4edda', '#FFA07A']
                 }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
             }
         });
     </script>

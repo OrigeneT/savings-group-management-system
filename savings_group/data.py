@@ -1,4 +1,4 @@
-from savings_group.models import db, Member, Contribution
+from savings_group.models import db, Member, Contribution, Loan, LoanRepayment
 from sqlalchemy.sql import func
 from sqlalchemy import text
 from datetime import datetime
@@ -24,8 +24,30 @@ def get_total_accounts():
 def get_total_contributions():
     return db.session.query(func.sum(Contribution.daily_contr_amount) + func.sum(Contribution.monthly_contr_amount) + func.sum(Contribution.social_contr_amount)).scalar() or 0
 
-def get_recent_contributions(limit=5):
-    return Contribution.query.order_by(Contribution.date_contributed.desc()).limit(limit).all()
+def get_late_contributions():
+    return db.session.execute(text("""
+        SELECT sum(Contribution.daily_contr_amount + Contribution.monthly_contr_amount + Contribution.social_contr_amount) AS total_late_contribution
+        FROM Contribution
+        WHERE Contribution.late_days > 0
+    """))
+
+def get_late_contribution_penalties():
+    return db.session.execute(text("""
+        SELECT sum(Contribution.penalty_amount) AS penalties
+        FROM Contribution
+        WHERE Contribution.late_days > 0
+    """))
+
+def get_loans_provided():
+    return db.session.query(func.sum(Loan.total_repayment_amount)).scalar() or 0
+
+def get_loans_repaid_amount():
+    return db.session.query(func.sum(LoanRepayment.amount)).scalar() or 0
+
+
+
+# def get_recent_contributions(limit=5):
+#     return Contribution.query.order_by(Contribution.date_contributed.desc()).limit(limit).all()
 
 
 def get_all_months(start_year=2022):

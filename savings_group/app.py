@@ -4,12 +4,13 @@ from datetime import timedelta, datetime, date
 from dateutil.relativedelta import relativedelta
 import pandas as pd
 from io import BytesIO
+from sqlalchemy.orm import joinedload
 
 from flask import Flask, render_template, redirect, url_for, flash, session, request, send_file, jsonify
 from flask_migrate import Migrate
 from savings_group.models import db, Member, Contribution, User, ContributionHistory, MemberHistory, Loan, LoanRepayment
 from savings_group.forms import RegistrationForm, ContributionForm, LoanForm, LoanRepaymentForm
-from savings_group.data import get_total_members, get_total_accounts, get_list_of_contributions, get_total_contributions,get_list_of_members, get_recent_contributions, get_available_months_for_member, get_all_months
+from savings_group.data import get_total_members, get_total_accounts, get_list_of_contributions,get_late_contribution_penalties, get_total_contributions,get_list_of_members, get_available_months_for_member, get_all_months, get_loans_provided, get_loans_repaid_amount,get_late_contributions
 
 
 app = Flask(__name__)
@@ -69,12 +70,18 @@ def home():
     metrics = {
         "total_members": get_total_members(),
         "total_accounts": get_total_accounts(),
-        "total_contributions": get_total_contributions()
+        "total_contributions": get_total_contributions(),
+        "loans_provided": get_loans_provided(),
+        "loans_repaid_amount": get_loans_repaid_amount()
     }
+    late_contributions = get_late_contributions().scalar()
+    late_contribution_penalties = get_late_contribution_penalties().scalar()
 
     return render_template('index.html',
                            metrics=metrics,
-                           members =get_list_of_members())
+                           members =get_list_of_members(),
+                           late_contributions = late_contributions,
+                           late_contribution_penalties = late_contribution_penalties)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -133,21 +140,6 @@ def contribute():
     ]
 
 
-
-    # form.month.choices = [
-    #     ('2024-01', 'January 2024'),
-    #     ('2024-02', 'February 2024'),
-    #     ('2024-03', 'March 2024'),
-    #     ('2024-04', 'April 2024'),
-    #     ('2024-05', 'May 2024'),
-    #     ('2024-06', 'June 2024'),
-    #     ('2024-07', 'July 2024'),
-    #     ('2024-08', 'August 2024'),
-    #     ('2024-09', 'September 2024'),
-    #     ('2024-10', 'October 2024'),
-    #     ('2024-11', 'November 2024'),
-    #     ('2024-12', 'December 2024')
-    # ]
     # Default: show all months if no member selected yet
     selected_member_id = form.member.data or (form.member.choices[0][0] if form.member.choices else None)
     if selected_member_id:
@@ -360,7 +352,7 @@ def loans():
 
         # Compute deadline
         first_repayment = form.first_repayment_date.data
-        deadline = first_repayment + relativedelta(months=months)
+        deadline = first_repayment + relativedelta(months=months-1)
         # Check deadline
 
         if deadline > date(datetime.now().year, 12, 31):
@@ -370,7 +362,7 @@ def loans():
                 member_id=form.member.data,
                 amount=principal,
                 repayment_period_months=months,
-                first_repayment_date=form.first_repayment_date.data,  # if you use this field
+                first_repayment_date=form.first_repayment_date.data,  
                 monthly_interest_rate=0.05,
                 late_interest_rate=0.10,
                 total_repayment_amount=total_repayment,
@@ -390,13 +382,68 @@ def loans():
     return render_template('loans.html', form=form, loans=loans, max_loan=max_loan)
 
 
+@app.route('/edit_loan/<int:loan_id>', methods=['GET', 'POST'])
+@login_required
+def edit_loan(loan_id):
+    loan = Loan.query.options(joinedload(Loan.member)).get_or_404(loan_id)
+    if loan.status == 'Fully paid':
+        flash("Fully paid loans cannot be edited.", "warning")
+        return redirect(url_for('loans'))
+
+    form = LoanForm(obj=loan)
+    # Set member choices and disable editing member
+    form.member.choices = [(loan.member_id, f"{loan.member.first_name} {loan.member.last_name}")]
+    form.member.render_kw = {'readonly': True, 'disabled': True}
+
+    if form.validate_on_submit():
+        # Only allow editing of allowed fields
+        loan.amount = form.amount.data
+        loan.repayment_period_months = form.repayment_period_months.data
+        loan.first_repayment_date = form.first_repayment_date.data
+        loan.status = form.status.data
+        # Recalculate dependent fields
+        loan.monthly_interest_rate = 0.05
+        loan.late_interest_rate = 0.10
+        loan.expected_monthly_payment = loan.amount / loan.repayment_period_months
+        loan.monthly_interest_amount = loan.amount * loan.monthly_interest_rate
+        loan.total_repayment_amount = (loan.expected_monthly_payment + loan.monthly_interest_amount) * loan.repayment_period_months
+        from dateutil.relativedelta import relativedelta
+        loan.deadline = loan.first_repayment_date + relativedelta(months=loan.repayment_period_months-1)
+        db.session.commit()
+        flash("Loan updated successfully!", "success")
+        return redirect(url_for('loans'))
+    # Set initial value for member field
+    form.member.data = loan.member_id
+    return render_template('edit_loan.html', form=form, loan=loan)
+
+@app.route('/delete_loan/<int:loan_id>', methods=['POST'])
+@login_required
+def delete_loan(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    if loan.repayments and len(loan.repayments) > 0:
+        flash("Cannot delete a loan with repayments. Delete repayments first.", "danger")
+        return redirect(url_for('loans'))
+    db.session.delete(loan)
+    db.session.commit()
+    flash("Loan deleted successfully!", "success")
+    return redirect(url_for('loans'))
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/loan_repayment', methods=['GET', 'POST'])
 @login_required
 def loan_repayment():
     form = LoanRepaymentForm()
     form.loan.choices = [
-        (l.id, f"{l.member_id} - {l.amount} ({l.status})") for l in Loan.query.filter(Loan.status != 'Fully paid').all()
+    (l.id, f"{l.member.first_name} {l.member.last_name} - {l.amount} ({l.status})") for l in Loan.query.filter(Loan.status != 'Fully paid').all()
     ]
     if form.validate_on_submit():
         loan = Loan.query.get(form.loan.data)
@@ -422,6 +469,33 @@ def loan_repayment():
     return render_template('loan_repayment.html', form=form, repayments=repayments)
 
 
+
+@app.route('/edit_repayment/<int:repayment_id>', methods=['GET', 'POST'])
+@login_required
+def edit_repayment(repayment_id):
+    repayment = LoanRepayment.query.get_or_404(repayment_id)
+    form = LoanRepaymentForm(obj=repayment)
+    # Set choices to only the current loan, and disable in template
+    form.loan.choices = [(repayment.loan_id, f"{repayment.loan.member.first_name} {repayment.loan.member.last_name} - {repayment.loan.amount}")]
+    if request.method == 'GET':
+        form.loan.data = repayment.loan_id
+    if form.validate_on_submit():
+        repayment.amount = form.amount.data
+        repayment.is_late = form.is_late.data
+        # Optionally update interest_applied if logic changes
+        db.session.commit()
+        flash("Repayment updated successfully!", "success")
+        return redirect(url_for('loan_repayment'))
+    return render_template('edit_repayment.html', form=form, repayment=repayment)
+
+@app.route('/delete_repayment/<int:repayment_id>', methods=['POST'])
+@login_required
+def delete_repayment(repayment_id):
+    repayment = LoanRepayment.query.get_or_404(repayment_id)
+    db.session.delete(repayment)
+    db.session.commit()
+    flash("Repayment deleted successfully!", "success")
+    return redirect(url_for('loan_repayment'))
 
 
 

@@ -50,9 +50,8 @@ class LoanForm(FlaskForm):
     # monthly_installment_deadline = IntegerField('Monthly Installment Deadline (day of month)', validators=[DataRequired(), NumberRange(min=1, max=31)])
     # deadline = DateField('Final Repayment Deadline', validators=[DataRequired()])
     status = SelectField('Status', choices=[
-        ('Approved', 'Approved'),
-        ('Under_repayment', 'Under repayment'),
-        ('Fully_paid', 'Fully paid')
+        ('Approved', 'Approved')
+        
     ], validators=[DataRequired()])
     submit = SubmitField('Record Loan')
 
