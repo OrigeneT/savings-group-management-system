@@ -45,7 +45,7 @@ class ContributionForm(FlaskForm):
 class LoanForm(FlaskForm):
     member = SelectField('Member', coerce=str, validators=[DataRequired()])
     amount = FloatField('Loan Amount', validators=[DataRequired(), NumberRange(min=1)])
-    repayment_period_months = IntegerField('Payment Period (months)', validators=[DataRequired(), NumberRange(min=1, max=12)])
+    repayment_period_months = IntegerField('Payment Period (months)', validators=[DataRequired(), NumberRange(min=1, max=24)])
     first_repayment_date = DateField('First Repayment Date', validators=[DataRequired()])
     # monthly_installment_deadline = IntegerField('Monthly Installment Deadline (day of month)', validators=[DataRequired(), NumberRange(min=1, max=31)])
     # deadline = DateField('Final Repayment Deadline', validators=[DataRequired()])

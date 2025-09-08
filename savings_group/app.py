@@ -355,8 +355,10 @@ def loans():
         deadline = first_repayment + relativedelta(months=months-1)
         # Check deadline
 
-        if deadline > date(datetime.now().year, 12, 31):
-            flash("Loan have to be fully paid before the end of the current year.", "danger")
+        # if deadline > date(datetime.now().year, 12, 31):
+        #     flash("Loan have to be fully paid before the end of the current year.", "danger")
+        if months > 24:
+            flash("Loan repayment period cannot exceed 24 months.", "danger")
         else:
             loan = Loan(
                 member_id=form.member.data,
@@ -546,6 +548,7 @@ def download_list_of_members():
 def download_list_of_contributions():
     df = get_list_of_contributions()
     list_of_contributions = pd.DataFrame(df.fetchall(), columns=df.keys())
+    list_of_contributions = list_of_contributions[['id', 'member_id','first_name','last_name', 'month', 'contrib_type', 'contrib_time', 'daily_contr_amount', 'monthly_contr_amount', 'social_contr_amount', 'date_of_record_reg', 'late_days', 'penalty_amount', 'total_paid', 'comment']]
 
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
