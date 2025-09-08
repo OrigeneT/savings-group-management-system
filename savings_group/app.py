@@ -516,6 +516,115 @@ def get_max_loan(member_id):
 
 
 
+from flask import make_response
+
+@app.route('/reports/contributions', methods=['GET', 'POST'])
+@login_required
+def contributions_report():
+    year = request.args.get('year', datetime.now().year, type=int)
+    members = Member.query.order_by(Member.first_name, Member.last_name).all()
+    # months = [f"{year}-{m}" for m in range(1, 13)]
+    months = [f"{year}-{m:02d}" for m in range(1, 13)]
+    month_labels = [datetime(year, m, 1).strftime("%b-%Y") for m in range(1, 13)]
+
+    # Query all contributions for the year
+    contributions = (
+        db.session.query(
+            Contribution.member_id,
+            Contribution.month,
+            db.func.sum(Contribution.daily_contr_amount).label('daily'),
+            db.func.sum(Contribution.monthly_contr_amount).label('monthly'),
+            db.func.sum(Contribution.social_contr_amount).label('social')
+        )
+        .filter(db.func.substr(Contribution.month, 1, 4) == str(year))
+        .group_by(Contribution.member_id, Contribution.month)
+        .all()
+    )
+
+    # Build maps for each contribution type
+    daily_map = {}
+    monthly_map = {}
+    social_map = {}
+    for member_id, month, daily, monthly, social in contributions:
+        daily_map.setdefault(member_id, {})[month] = daily or 0
+        monthly_map.setdefault(member_id, {})[month] = monthly or 0
+        social_map.setdefault(member_id, {})[month] = social or 0
+
+    # Prepare data for each sheet
+    def build_sheet(contrib_map, label):
+        rows = []
+        for member in members:
+            row = {
+                'Member': f"{member.first_name} {member.last_name}",
+                'Accounts': member.nber_of_accounts,
+            }
+            total = 0
+            for month, mlabel in zip(months, month_labels):
+                paid = contrib_map.get(member.id, {}).get(month, 0) or 0
+                row[mlabel] = paid
+                total += paid
+            row['Total'] = total
+            rows.append(row)
+        return rows
+    
+
+    def build_combined_sheet():
+        combined_rows = []
+        for member in members:
+            row = {
+                'Member': f"{member.first_name} {member.last_name}",
+                'Accounts': member.nber_of_accounts,
+            }
+            total = 0
+            for month, mlabel in zip(months, month_labels):
+                paid = (
+                    (daily_map.get(member.id, {}).get(month, 0) or 0) +
+                    (monthly_map.get(member.id, {}).get(month, 0) or 0) +
+                    (social_map.get(member.id, {}).get(month, 0) or 0)
+                )
+                row[mlabel] = paid
+                total += paid
+            row['Total'] = total
+            combined_rows.append(row)
+        return combined_rows
+
+    combined_rows = build_combined_sheet()
+    daily_rows = build_sheet(daily_map, 'Daily')
+    monthly_rows = build_sheet(monthly_map, 'Monthly')
+    social_rows = build_sheet(social_map, 'Social')
+
+
+
+    
+    if request.args.get('download') == 'excel':
+        import pandas as pd
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            pd.DataFrame(combined_rows).to_excel(writer, index=False, sheet_name='All Contributions')
+            pd.DataFrame(daily_rows).to_excel(writer, index=False, sheet_name='Daily Contributions')
+            pd.DataFrame(monthly_rows).to_excel(writer, index=False, sheet_name='Monthly Contributions')
+            pd.DataFrame(social_rows).to_excel(writer, index=False, sheet_name='Social Contributions')
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            download_name=f"Contributions_Report_{year}.xlsx",
+            as_attachment=True
+        )
+
+    # For web view, you can show one sheet (e.g., daily) or summarize as before
+    return render_template(
+        'contributions_report.html',
+        year=year,
+        month_labels=month_labels,
+        report_rows=combined_rows,  
+        now=datetime.now()
+    )
+
+
+
+
+
 
 
 @app.route('/logout')

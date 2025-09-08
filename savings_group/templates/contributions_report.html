@@ -1,0 +1,35 @@
+{% extends "custom_layout.html" %}
+{% block title %}Contributions Report{% endblock %}
+{% block content %}
+<h2>Contributions Report for {{ year }}</h2>
+<form method="get" class="mb-3">
+    <label for="year">Select Year:</label>
+    <input type="number" name="year" id="year" value="{{ year }}" min="2022" max="{{ now.year }}">
+    <button type="submit" class="btn btn-primary btn-sm">View</button>
+    <a href="{{ url_for('contributions_report', year=year, download='excel') }}" class="btn btn-success btn-sm">Download Excel</a>
+</form>
+<table class="table table-bordered table-striped table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Member</th>
+            <th>Accounts</th>
+            {% for label in month_labels %}
+            <th>{{ label }}</th>
+            {% endfor %}
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in report_rows %}
+        <tr>
+            <td>{{ row.Member }}</td>
+            <td>{{ row.Accounts }}</td>
+            {% for label in month_labels %}
+            <td>{{ row[label] }}</td>
+            {% endfor %}
+            <td><strong>{{ row.Total }}</strong></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
