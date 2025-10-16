@@ -32,9 +32,14 @@ class ContributionForm(FlaskForm):
     )
     contrib_type =SelectField('Contribution level', validators=[DataRequired()])
     contrib_time =SelectField('Is contribution on Time', validators=[DataRequired()])
-    daily_contr_amount = IntegerField('Daily Contribution', validators=[DataRequired()])
-    monthly_contr_amount = IntegerField('Monthly Contribution', validators=[DataRequired()])
-    social_contr_amount = IntegerField('Social Contribution', validators=[DataRequired()])
+    # daily_contr_amount = IntegerField('Daily Contribution', validators=[DataRequired()])
+    # monthly_contr_amount = IntegerField('Monthly Contribution', validators=[DataRequired()])
+    # social_contr_amount = IntegerField('Social Contribution', validators=[DataRequired()])
+    
+    daily_contr_amount = IntegerField('Daily Contribution', validators=[Optional(), NumberRange(min=0)])
+    monthly_contr_amount = IntegerField('Monthly Contribution', validators=[Optional(), NumberRange(min=0)])
+    social_contr_amount = IntegerField('Social Contribution', validators=[Optional(), NumberRange(min=0)])
+
     late_days = IntegerField('Number of Late days', validators=[Optional(), NumberRange(min=0, max=100)])
     penalty_amount = IntegerField('Total Penalties', validators=[Optional()])
     comment = StringField('Comments (if any)', validators=[Optional()])

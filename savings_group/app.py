@@ -184,6 +184,12 @@ def contribute():
             flash(f'Contribution for {form.month.data} already recorded!', 'warning')
             return redirect(url_for('contribute'))
 
+
+        if daily_contr_amount + monthly_contr_amount + social_contr_amount == 0:
+            flash("At least one contribution amount must be greater than 0", "error")
+            return redirect(url_for('contribute'))
+
+
         # Record the contribution
         new_contribution = Contribution(
             member_id=member.id,
