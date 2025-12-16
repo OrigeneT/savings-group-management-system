@@ -8,8 +8,8 @@ from sqlalchemy.orm import joinedload
 
 from flask import Flask, render_template, redirect, url_for, flash, session, request, send_file, jsonify
 from flask_migrate import Migrate
-from savings_group.models import db, Member, Contribution, User, ContributionHistory, MemberHistory, Loan, LoanRepayment
-from savings_group.forms import RegistrationForm, ContributionForm, LoanForm, LoanRepaymentForm
+from savings_group.models import db, Member, Contribution, User, ContributionHistory, MemberHistory, Loan, LoanRepayment, MembershipFee
+from savings_group.forms import RegistrationForm, ContributionForm, LoanForm, LoanRepaymentForm, MembershipFeeForm
 from savings_group.data import get_total_members, get_total_accounts, get_list_of_contributions,get_late_contribution_penalties, get_total_contributions,get_list_of_members, get_available_months_for_member, get_all_months, get_loans_provided, get_loans_repaid_amount,get_late_contributions
 
 
@@ -591,6 +591,14 @@ def contributions_report():
                 row[mlabel] = paid
                 total += paid
             row['Total'] = total
+
+            # Add membership fee for the year
+            membership_fee = MembershipFee.query.filter_by(
+                member_id=member.id,
+                year=year
+            ).first()
+            row['Membership Fee'] = membership_fee.total_amount if membership_fee else 0
+            
             combined_rows.append(row)
         return combined_rows
 
@@ -626,6 +634,184 @@ def contributions_report():
         report_rows=combined_rows,  
         now=datetime.now()
     )
+
+@app.route('/reports/loans', methods=['GET', 'POST'])
+@login_required
+def loans_report():
+    # Get all members
+    members = Member.query.order_by(Member.first_name, Member.last_name).all()
+    
+    # Prepare report rows
+    report_rows = []
+    for member in members:
+        # Get all loans for this member
+        loans = Loan.query.filter_by(member_id=member.id).all()
+        
+        if not loans:
+            # Member has no loans
+            report_rows.append({
+                'member': member,
+                'has_loan': 'No',
+                'loan_date': '-',
+                'status': '-',
+                'loan_amount': 0,
+                'total_interest': 0,
+                'total_repayment': 0,
+                'paid_amount': 0,
+                'paid_interest': 0,
+                'remaining': 0,
+                'first_repayment_date': '-',
+                'deadline': '-',
+                'repayment_period': '-'
+            })
+        else:
+            # Member has loans - show each loan
+            for loan in loans:
+                # Calculate total paid and interest paid
+                total_paid = sum(r.amount for r in loan.repayments)
+                total_interest_paid = sum(r.amount * r.interest_applied for r in loan.repayments)
+                
+                # Calculate remaining
+                remaining = loan.total_repayment_amount - total_paid
+                
+                # Total interest to pay
+                total_interest = loan.monthly_interest_amount * loan.repayment_period_months
+                
+                report_rows.append({
+                    'member': member,
+                    'has_loan': 'Yes',
+                    'loan_date': loan.created_at.strftime('%Y-%m-%d') if loan.created_at else '-',
+                    'status': loan.status,
+                    'loan_amount': loan.amount,
+                    'total_interest': total_interest,
+                    'total_repayment': loan.total_repayment_amount,
+                    'paid_amount': total_paid,
+                    'paid_interest': total_interest_paid,
+                    'remaining': max(0, remaining),
+                    'first_repayment_date': loan.first_repayment_date.strftime('%Y-%m-%d') if loan.first_repayment_date else '-',
+                    'deadline': loan.deadline.strftime('%Y-%m-%d') if loan.deadline else '-',
+                    'repayment_period': f"{loan.repayment_period_months} months"
+                })
+    
+    # Download as Excel
+    if request.args.get('download') == 'excel':
+        data = []
+        for row in report_rows:
+            data.append({
+                'Member': f"{row['member'].first_name} {row['member'].last_name}",
+                'Has Loan': row['has_loan'],
+                'Loan Date': row['loan_date'],
+                'Status': row['status'],
+                'Loan Amount': row['loan_amount'],
+                'Total Interest': row['total_interest'],
+                'Total Repayment': row['total_repayment'],
+                'Paid Amount': row['paid_amount'],
+                'Paid Interest': row['paid_interest'],
+                'Remaining': row['remaining'],
+                'First Repayment Date': row['first_repayment_date'],
+                'Deadline': row['deadline'],
+                'Repayment Period': row['repayment_period']
+            })
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Loans Report')
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            download_name=f"Loans_Report_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            as_attachment=True
+        )
+    
+    return render_template('loans_report.html', report_rows=report_rows)
+
+
+
+
+@app.route('/membership_fees', methods=['GET', 'POST'])
+@login_required
+def membership_fees():
+    form = MembershipFeeForm()
+    form.member.choices = [
+        (str(m.id), f"{m.id} - {m.first_name} {m.last_name} ({m.nber_of_accounts} accounts)")
+        for m in Member.query.all()
+    ]
+    
+    # Set default year to current year
+    if request.method == 'GET':
+        form.year.data = datetime.now().year
+    
+    if form.validate_on_submit():
+        member = Member.query.get(form.member.data)
+        year = form.year.data
+        amount_per_account = form.amount_per_account.data
+        
+        # Check if membership fee already recorded for this year
+        existing_fee = MembershipFee.query.filter_by(
+            member_id=member.id,
+            year=year
+        ).first()
+        
+        if existing_fee:
+            flash(f'Membership fee for {member.first_name} {member.last_name} for year {year} already recorded!', 'warning')
+            return redirect(url_for('membership_fees'))
+        
+        # Calculate total based on number of accounts
+        total_amount = amount_per_account * member.nber_of_accounts
+        
+        # Record membership fee
+        new_fee = MembershipFee(
+            member_id=member.id,
+            year=year,
+            amount_per_account=amount_per_account,
+            number_of_accounts=member.nber_of_accounts,
+            total_amount=total_amount
+        )
+        
+        db.session.add(new_fee)
+        db.session.commit()
+        flash(f'Membership fee of {total_amount} recorded for {member.first_name} {member.last_name} for year {year}!', 'success')
+        return redirect(url_for('membership_fees'))
+    
+    # Get all membership fees
+    fees = MembershipFee.query.order_by(MembershipFee.paid_at.desc()).all()
+    return render_template('membership_fees.html', form=form, fees=fees)
+
+
+@app.route('/edit_membership_fee/<int:fee_id>', methods=['GET', 'POST'])
+@login_required
+def edit_membership_fee(fee_id):
+    fee = MembershipFee.query.get_or_404(fee_id)
+    form = MembershipFeeForm(obj=fee)
+    
+    # Set member choices (read-only)
+    form.member.choices = [(fee.member_id, f"{fee.member.first_name} {fee.member.last_name}")]
+    
+    if request.method == 'GET':
+        form.member.data = fee.member_id
+    
+    if form.validate_on_submit():
+        fee.year = form.year.data
+        fee.amount_per_account = form.amount_per_account.data
+        fee.number_of_accounts = fee.member.nber_of_accounts
+        fee.total_amount = fee.amount_per_account * fee.number_of_accounts
+        
+        db.session.commit()
+        flash("Membership fee updated successfully!", "success")
+        return redirect(url_for('membership_fees'))
+    
+    return render_template('edit_membership_fee.html', form=form, fee=fee)
+
+
+@app.route('/delete_membership_fee/<int:fee_id>', methods=['POST'])
+@login_required
+def delete_membership_fee(fee_id):
+    fee = MembershipFee.query.get_or_404(fee_id)
+    db.session.delete(fee)
+    db.session.commit()
+    flash("Membership fee deleted successfully!", "success")
+    return redirect(url_for('membership_fees'))
 
 
 

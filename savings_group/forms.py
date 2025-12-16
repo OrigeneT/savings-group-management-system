@@ -65,3 +65,9 @@ class LoanRepaymentForm(FlaskForm):
     amount = FloatField('Repayment Amount', validators=[DataRequired(), NumberRange(min=1)])
     is_late = BooleanField('Is Late?')
     submit = SubmitField('Record Repayment')
+
+class MembershipFeeForm(FlaskForm):
+    member = SelectField('Member', coerce=str, validators=[DataRequired()])
+    year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=2020, max=2100)])
+    amount_per_account = FloatField('Amount Per Account', validators=[DataRequired(), NumberRange(min=1)])
+    submit = SubmitField('Record Membership Fee')

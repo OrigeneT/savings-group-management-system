@@ -110,3 +110,15 @@ class LoanRepayment(db.Model):
     paid_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_late = db.Column(db.Boolean, nullable=False, default=False)
     interest_applied = db.Column(db.Float, nullable=False, default=0.05)
+
+class MembershipFee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.String(16), db.ForeignKey('member.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)  # Year of membership
+    amount_per_account = db.Column(db.Float, nullable=False)  # Fixed amount per account
+    number_of_accounts = db.Column(db.Integer, nullable=False)  # Number of accounts at time of payment
+    total_amount = db.Column(db.Float, nullable=False)  # Total amount paid
+    paid_at = db.Column(db.DateTime, default=lambda: datetime.now(gmt_plus_2).replace(microsecond=0), nullable=False)
+    member = db.relationship('Member', backref=db.backref('membership_fees', lazy=True))
+    
+    __table_args__ = (db.UniqueConstraint('member_id', 'year', name='_member_year_uc'),)

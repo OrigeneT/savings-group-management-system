@@ -1,0 +1,25 @@
+{% extends "custom_layout.html" %}
+{% block title %}Edit Membership Fee{% endblock %}
+{% block content %}
+<h2>Edit Membership Fee</h2>
+<form method="POST" class="row g-3">
+    {{ form.hidden_tag() }}
+    <div class="col-md-4">
+        {{ form.member.label(class="form-label") }}
+        {{ form.member(class="form-control", disabled=True) }}
+        <input type="hidden" name="member" value="{{ form.member.data }}">
+    </div>
+    <div class="col-md-4">
+        {{ form.year.label(class="form-label") }}
+        {{ form.year(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+        {{ form.amount_per_account.label(class="form-label") }}
+        {{ form.amount_per_account(class="form-control") }}
+    </div>
+    <div class="col-12">
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('membership_fees') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

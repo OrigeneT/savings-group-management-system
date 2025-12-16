@@ -13,6 +13,7 @@
         <tr>
             <th>Member</th>
             <th>Accounts</th>
+            <th>Membership Fee</th>
             {% for label in month_labels %}
             <th>{{ label }}</th>
             {% endfor %}
@@ -24,6 +25,7 @@
         <tr>
             <td>{{ row.Member }}</td>
             <td>{{ row.Accounts }}</td>
+            <td>{{ row['Membership Fee'] }}</td>
             {% for label in month_labels %}
             <td>{{ row[label] }}</td>
             {% endfor %}
