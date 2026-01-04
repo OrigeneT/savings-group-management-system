@@ -62,8 +62,11 @@ class LoanForm(FlaskForm):
 
 class LoanRepaymentForm(FlaskForm):
     loan = SelectField('Loan', coerce=int, validators=[DataRequired()])
-    amount = FloatField('Repayment Amount', validators=[DataRequired(), NumberRange(min=1)])
+    monthly_principal = FloatField('Monthly Principal', validators=[DataRequired(), NumberRange(min=1)])
+    monthly_interest = FloatField('Monthly Interest', validators=[DataRequired(), NumberRange(min=0)])
     is_late = BooleanField('Is Late?')
+    late_months = IntegerField('Number of Late Months', validators=[Optional(), NumberRange(min=0, max=24)])
+    late_penalty = FloatField('Late Penalties', validators=[Optional(), NumberRange(min=0)])
     submit = SubmitField('Record Repayment')
 
 class MembershipFeeForm(FlaskForm):

@@ -4,10 +4,50 @@
 <h2>Record Loan Repayment</h2>
 <form method="POST">
     {{ form.hidden_tag() }}
-    <div>{{ form.loan.label }} {{ form.loan(class="form-control") }}</div>
-    <div>{{ form.amount.label }} {{ form.amount(class="form-control") }}</div>
-    <div>{{ form.is_late.label }} {{ form.is_late() }}</div>
-    <div>{{ form.submit(class="btn btn-primary") }}</div>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            {{ form.loan.label(class="form-label") }}
+            {{ form.loan(class="form-control", id="loan") }}
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-4">
+            {{ form.monthly_principal.label(class="form-label") }}
+            {{ form.monthly_principal(class="form-control", id="monthly_principal") }}
+        </div>
+        <div class="col-md-4">
+            {{ form.monthly_interest.label(class="form-label") }}
+            {{ form.monthly_interest(class="form-control", id="monthly_interest") }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <div class="form-check">
+                {{ form.is_late(class="form-check-input", id="is_late", onchange="toggleLateMonths()") }}
+                {{ form.is_late.label(class="form-check-label") }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-3 d-none" id="lateMonthsField">
+        <div class="col-md-4">
+            {{ form.late_months.label(class="form-label") }}
+            {{ form.late_months(class="form-control", id="late_months", value="0", onchange="calculateTotal()") }}
+        </div>
+        <div class="col-md-4">
+            {{ form.late_penalty.label(class="form-label") }}
+            {{ form.late_penalty(class="form-control", id="late_penalty_input", readonly=True) }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Total Amount</label>
+            <input type="text" class="form-control" id="total_amount" readonly value="0.00">
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
 </form>
 
 <h2 class="mt-4">Repayments List</h2>
@@ -16,11 +56,13 @@
         <tr>
             <th>Loan ID</th>
             <th>Member Name</th>
-            <th>Total Loan + Interests</th>
-            <th>Installment Amount Paid</th>
+            <th>Monthly Principal</th>
+            <th>Monthly Interest</th>
+            <th>Late Months</th>
+            <th>Late Penalty</th>
+            <th>Total Amount Paid</th>
             <th>Paid At</th>
             <th>Is Late?</th>
-            <th>Interest Applied</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -29,11 +71,13 @@
         <tr>
             <td>{{ repayment.loan_id }}</td>
             <td>{{ repayment.loan.member.first_name }} {{ repayment.loan.member.last_name }}</td>
-            <td>{{ repayment.loan.total_repayment_amount }}</td>
+            <td>{{ repayment.monthly_principal if repayment.monthly_principal else '-' }}</td>
+            <td>{{ repayment.monthly_interest if repayment.monthly_interest else '-' }}</td>
+            <td>{{ repayment.late_months or 0 }}</td>
+            <td>{{ repayment.late_penalty or 0 }}</td>
             <td>{{ repayment.amount }}</td>
             <td>{{ repayment.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>{{ 'Yes' if repayment.is_late else 'No' }}</td>
-            <td>{{ repayment.interest_applied }}</td>
             <td>
                 <a href="{{ url_for('edit_repayment', repayment_id=repayment.id) }}" class="btn btn-sm btn-warning">Update</a>
                 <form action="{{ url_for('delete_repayment', repayment_id=repayment.id) }}" method="POST" class="d-inline delete-form">
@@ -44,16 +88,6 @@
         {% endfor %}
     </tbody>
 </table>
-
- <!-- {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <ul>
-        {% for category, message in messages %}
-            <li class="{{ category }}">{{ message }}</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
-{% endwith %} -->
 
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -73,9 +107,55 @@
   </div>
 </div>
 
-
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+$(function() {
+    $('#loan').change(function() {
+        var loanId = $(this).val();
+        if (loanId) {
+            $.getJSON('/get_loan_details/' + loanId, function(data) {
+                $('#monthly_principal').val(data.expected_monthly_payment.toFixed(2));
+                $('#monthly_interest').val(data.monthly_interest_amount.toFixed(2));
+                calculateTotal();
+            });
+        }
+    });
+});
+
+function toggleLateMonths() {
+    let isLate = document.getElementById("is_late").checked;
+    let lateMonthsField = document.getElementById("lateMonthsField");
+    
+    if (isLate) {
+        lateMonthsField.classList.remove("d-none");
+    } else {
+        lateMonthsField.classList.add("d-none");
+        document.getElementById("late_months").value = "0";
+        calculateTotal();
+    }
+}
+
+function calculateTotal() {
+    let principal = parseFloat(document.getElementById("monthly_principal").value) || 0;
+    let interest = parseFloat(document.getElementById("monthly_interest").value) || 0;
+    let lateMonths = parseInt(document.getElementById("late_months").value) || 0;
+    
+    let latePenalty = 0;
+    if (document.getElementById("is_late").checked && lateMonths > 0) {
+        latePenalty = principal * 0.10 * lateMonths;
+    }
+    
+    let total = principal + interest + latePenalty;
+    
+    // Update both the display field AND the actual form field
+    document.getElementById("late_penalty_input").value = latePenalty.toFixed(2);
+    document.getElementById("total_amount").value = total.toFixed(2);
+}
+
+// Recalculate when principal or interest changes
+document.getElementById("monthly_principal").addEventListener("input", calculateTotal);
+document.getElementById("monthly_interest").addEventListener("input", calculateTotal);
+
 let formToDelete = null;
 
 document.querySelectorAll('.delete-btn').forEach(btn => {

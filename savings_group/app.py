@@ -1,5 +1,5 @@
 import os
-from http.cookiejar import month
+# from http.cookiejar import month
 from datetime import timedelta, datetime, date
 from dateutil.relativedelta import relativedelta
 import pandas as pd
@@ -451,28 +451,51 @@ def delete_loan(loan_id):
 def loan_repayment():
     form = LoanRepaymentForm()
     form.loan.choices = [
-    (l.id, f"{l.member.first_name} {l.member.last_name} - {l.amount} ({l.status})") for l in Loan.query.filter(Loan.status != 'Fully paid').all()
+        (l.id, f"{l.member.first_name} {l.member.last_name} - {l.amount} ({l.status})") 
+        for l in Loan.query.filter(Loan.status != 'Fully paid').all()
     ]
+    
     if form.validate_on_submit():
         loan = Loan.query.get(form.loan.data)
-        interest = 0.10 if form.is_late.data else 0.05
-        repayment_amount = form.amount.data * (1 + (interest if form.is_late.data else 0))
+        
+        monthly_principal = form.monthly_principal.data
+        monthly_interest = form.monthly_interest.data
+        late_months = form.late_months.data or 0
+        late_penalty = form.late_penalty.data or 0  # User enters this manually
+        
+        # Total amount paid (including penalties)
+        total_amount = monthly_principal + monthly_interest + late_penalty
+        
+        # Determine interest applied rate
+        interest_rate = 0.10 if form.is_late.data else 0.05
+        
         repayment = LoanRepayment(
             loan_id=loan.id,
-            amount=repayment_amount,
+            amount=total_amount,
+            monthly_principal=monthly_principal,
+            monthly_interest=monthly_interest,
+            late_months=late_months,
+            late_penalty=late_penalty,
             is_late=form.is_late.data,
-            interest_applied=interest
+            interest_applied=interest_rate
         )
         db.session.add(repayment)
+        
         # Update loan status if fully paid
-        total_repaid = sum(r.amount for r in loan.repayments) + repayment_amount
-        if total_repaid >= loan.total_repayment_amount:
+        # Only count principal + standard interest (NOT penalties) towards loan completion
+        total_principal_paid = sum(r.monthly_principal or 0 for r in loan.repayments) + monthly_principal
+        total_interest_paid = sum(r.monthly_interest or 0 for r in loan.repayments) + monthly_interest
+        total_repaid_towards_loan = total_principal_paid + total_interest_paid
+        
+        if total_repaid_towards_loan >= loan.total_repayment_amount:
             loan.status = 'Fully paid'
         else:
             loan.status = 'Under repayment'
+        
         db.session.commit()
         flash("Repayment recorded!", "success")
         return redirect(url_for('loan_repayment'))
+    
     repayments = LoanRepayment.query.all()
     return render_template('loan_repayment.html', form=form, repayments=repayments)
 
@@ -483,24 +506,73 @@ def loan_repayment():
 def edit_repayment(repayment_id):
     repayment = LoanRepayment.query.get_or_404(repayment_id)
     form = LoanRepaymentForm(obj=repayment)
-    # Set choices to only the current loan, and disable in template
+    
     form.loan.choices = [(repayment.loan_id, f"{repayment.loan.member.first_name} {repayment.loan.member.last_name} - {repayment.loan.amount}")]
+    
     if request.method == 'GET':
         form.loan.data = repayment.loan_id
+        if repayment.monthly_principal:
+            form.monthly_principal.data = repayment.monthly_principal
+        if repayment.monthly_interest:
+            form.monthly_interest.data = repayment.monthly_interest
+        if repayment.late_months:
+            form.late_months.data = repayment.late_months
+        if repayment.late_penalty:
+            form.late_penalty.data = repayment.late_penalty
+    
     if form.validate_on_submit():
-        repayment.amount = form.amount.data
+        # Get old values before updating
+        old_principal = repayment.monthly_principal or 0
+        old_interest = repayment.monthly_interest or 0
+        
+        # Update repayment details
+        repayment.monthly_principal = form.monthly_principal.data
+        repayment.monthly_interest = form.monthly_interest.data
         repayment.is_late = form.is_late.data
-        # Optionally update interest_applied if logic changes
+        repayment.late_months = form.late_months.data or 0
+        repayment.late_penalty = form.late_penalty.data or 0  # User enters manually
+        
+        # Recalculate total amount
+        repayment.amount = repayment.monthly_principal + repayment.monthly_interest + repayment.late_penalty
+        repayment.interest_applied = 0.10 if form.is_late.data else 0.05
+        
+        # Recalculate loan status
+        loan = repayment.loan
+        total_principal_paid = sum(r.monthly_principal or 0 for r in loan.repayments)
+        total_interest_paid = sum(r.monthly_interest or 0 for r in loan.repayments)
+        total_repaid_towards_loan = total_principal_paid + total_interest_paid
+        
+        if total_repaid_towards_loan >= loan.total_repayment_amount:
+            loan.status = 'Fully paid'
+        else:
+            loan.status = 'Under repayment'
+        
         db.session.commit()
         flash("Repayment updated successfully!", "success")
         return redirect(url_for('loan_repayment'))
+    
     return render_template('edit_repayment.html', form=form, repayment=repayment)
 
 @app.route('/delete_repayment/<int:repayment_id>', methods=['POST'])
 @login_required
 def delete_repayment(repayment_id):
     repayment = LoanRepayment.query.get_or_404(repayment_id)
+    loan = repayment.loan
+    
     db.session.delete(repayment)
+    
+    # Recalculate loan status after deletion
+    total_principal_paid = sum(r.monthly_principal or 0 for r in loan.repayments)
+    total_interest_paid = sum(r.monthly_interest or 0 for r in loan.repayments)
+    total_repaid_towards_loan = total_principal_paid + total_interest_paid
+    
+    if total_repaid_towards_loan >= loan.total_repayment_amount:
+        loan.status = 'Fully paid'
+    elif total_repaid_towards_loan > 0:
+        loan.status = 'Under repayment'
+    else:
+        loan.status = 'Approved'  # No repayments made yet
+    
     db.session.commit()
     flash("Repayment deleted successfully!", "success")
     return redirect(url_for('loan_repayment'))
@@ -518,6 +590,16 @@ def get_max_loan(member_id):
         db.func.substr(Contribution.month, 1, 4) == str(year)
     ).scalar() or 0
     return jsonify({'max_loan': max_loan})
+
+
+@app.route('/get_loan_details/<int:loan_id>')
+@login_required
+def get_loan_details(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    return jsonify({
+        'expected_monthly_payment': loan.expected_monthly_payment,
+        'monthly_interest_amount': loan.monthly_interest_amount
+    })
 
 
 

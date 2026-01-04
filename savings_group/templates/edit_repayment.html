@@ -4,21 +4,79 @@
 <h2>Edit Repayment</h2>
 <form method="POST">
     {{ form.hidden_tag() }}
-    <div>
-        {{ form.loan.label }}
+    
+    <div class="mb-3">
+        {{ form.loan.label(class="form-label") }}
         {{ form.loan(class="form-control", readonly=True, disabled=True) }}
         <input type="hidden" name="loan" value="{{ form.loan.data }}">
     </div>
-    <div>
-        {{ form.amount.label }}
-        {{ form.amount(class="form-control") }}
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            {{ form.monthly_principal.label(class="form-label") }}
+            {{ form.monthly_principal(class="form-control", id="monthly_principal") }}
+        </div>
+        <div class="col-md-6">
+            {{ form.monthly_interest.label(class="form-label") }}
+            {{ form.monthly_interest(class="form-control", id="monthly_interest") }}
+        </div>
     </div>
-    <div>
-        {{ form.is_late.label }}
-        {{ form.is_late() }}
+    
+    <div class="mb-3">
+        <div class="form-check">
+            {{ form.is_late(class="form-check-input", id="is_late", onchange="toggleLateFields()") }}
+            {{ form.is_late.label(class="form-check-label") }}
+        </div>
     </div>
+    
+    <div class="row mb-3 {% if not form.is_late.data %}d-none{% endif %}" id="lateFields">
+        <div class="col-md-4">
+            {{ form.late_months.label(class="form-label") }}
+            {{ form.late_months(class="form-control", id="late_months") }}
+        </div>
+        <div class="col-md-4">
+            {{ form.late_penalty.label(class="form-label") }}
+            {{ form.late_penalty(class="form-control", id="late_penalty") }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Total Amount</label>
+            <input type="text" class="form-control" id="total_amount" readonly value="{{ repayment.amount }}">
+        </div>
+    </div>
+    
     <div>
         {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('loan_repayment') }}" class="btn btn-secondary">Cancel</a>
     </div>
 </form>
+
+<script>
+function toggleLateFields() {
+    let isLate = document.getElementById("is_late").checked;
+    let lateFields = document.getElementById("lateFields");
+    
+    if (isLate) {
+        lateFields.classList.remove("d-none");
+    } else {
+        lateFields.classList.add("d-none");
+        document.getElementById("late_months").value = "";
+        document.getElementById("late_penalty").value = "";
+        calculateTotal();
+    }
+}
+
+function calculateTotal() {
+    let principal = parseFloat(document.getElementById("monthly_principal").value) || 0;
+    let interest = parseFloat(document.getElementById("monthly_interest").value) || 0;
+    let latePenalty = parseFloat(document.getElementById("late_penalty").value) || 0;
+    
+    let total = principal + interest + latePenalty;
+    
+    document.getElementById("total_amount").value = total.toFixed(2);
+}
+
+document.getElementById("monthly_principal").addEventListener("input", calculateTotal);
+document.getElementById("monthly_interest").addEventListener("input", calculateTotal);
+document.getElementById("late_penalty").addEventListener("input", calculateTotal);
+</script>
 {% endblock %}

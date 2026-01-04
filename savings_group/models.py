@@ -106,10 +106,16 @@ class Loan(db.Model):
 class LoanRepayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Float, nullable=False)  # Total amount paid
     paid_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_late = db.Column(db.Boolean, nullable=False, default=False)
     interest_applied = db.Column(db.Float, nullable=False, default=0.05)
+    
+    # New detailed fields (nullable for backward compatibility)
+    monthly_principal = db.Column(db.Float, nullable=True)
+    monthly_interest = db.Column(db.Float, nullable=True)
+    late_months = db.Column(db.Integer, nullable=True, default=0)
+    late_penalty = db.Column(db.Float, nullable=True, default=0.0)
 
 class MembershipFee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
