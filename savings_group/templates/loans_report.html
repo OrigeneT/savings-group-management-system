@@ -1,10 +1,13 @@
 {% extends "custom_layout.html" %}
 {% block title %}Loans Report{% endblock %}
 {% block content %}
-<h2>Loans Report</h2>
-<div class="mb-3">
-    <a href="{{ url_for('loans_report', download='excel') }}" class="btn btn-success btn-sm">Download Excel</a>
-</div>
+<h2>Loans Report for {{ year }}</h2>
+<form method="get" class="mb-3">
+    <label for="year">Select Year:</label>
+    <input type="number" name="year" id="year" value="{{ year }}" min="2022" max="{{ now.year }}">
+    <button type="submit" class="btn btn-primary btn-sm">View</button>
+    <a href="{{ url_for('loans_report', year=year, download='excel') }}" class="btn btn-success btn-sm">Download Excel</a>
+</form>
 <table class="table table-bordered table-striped table-hover align-middle">
     <thead>
         <tr>

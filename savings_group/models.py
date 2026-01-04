@@ -44,14 +44,30 @@ class Contribution(db.Model):
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)  # Nullable for backward compatibility
     password_hash = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), nullable=False, default='user')  # e.g. 'admin', 'user'
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_reset_token(self):
+        import secrets
+        self.reset_token = secrets.token_urlsafe(32)
+        from datetime import datetime, timedelta
+        self.reset_token_expiry = datetime.utcnow() + timedelta(hours=24)
+        return self.reset_token
+    
+    def verify_reset_token(self, token):
+        from datetime import datetime
+        if self.reset_token == token and self.reset_token_expiry > datetime.utcnow():
+            return True
+        return False
     
 
 

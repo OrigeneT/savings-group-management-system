@@ -48,18 +48,21 @@ def login_required(f):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        username_or_email = request.form['username_or_email']
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
+        
+        # Try to find user by email first, then by username
+        user = User.query.filter_by(email=username_or_email).first()
+        if not user:
+            user = User.query.filter_by(username=username_or_email).first()
 
         if user and user.check_password(password):
             session.permanent = True  # this enables the timeout
             session['user_id'] = user.id
             session['username'] = user.username
             return redirect(url_for('home'))
-            # return redirect(url_for('dashboard'))  # or any protected route
         else:
-            flash("Invalid username or password")
+            flash("Invalid username/email or password")
     return render_template('login.html')
 
 
@@ -720,17 +723,22 @@ def contributions_report():
 @app.route('/reports/loans', methods=['GET', 'POST'])
 @login_required
 def loans_report():
+    year = request.args.get('year', datetime.now().year, type=int)
+    
     # Get all members
     members = Member.query.order_by(Member.first_name, Member.last_name).all()
     
     # Prepare report rows
     report_rows = []
     for member in members:
-        # Get all loans for this member
-        loans = Loan.query.filter_by(member_id=member.id).all()
+        # Get all loans for this member filtered by year
+        loans = Loan.query.filter(
+            Loan.member_id == member.id,
+            db.func.strftime('%Y', Loan.created_at) == str(year)
+        ).all()
         
         if not loans:
-            # Member has no loans
+            # Member has no loans for this year
             report_rows.append({
                 'member': member,
                 'has_loan': 'No',
@@ -802,11 +810,11 @@ def loans_report():
         return send_file(
             output,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            download_name=f"Loans_Report_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            download_name=f"Loans_Report_{year}.xlsx",
             as_attachment=True
         )
     
-    return render_template('loans_report.html', report_rows=report_rows)
+    return render_template('loans_report.html', report_rows=report_rows, year=year, now=datetime.now())
 
 
 
@@ -905,6 +913,90 @@ def delete_membership_fee(fee_id):
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        user = User.query.get(session['user_id'])
+        
+        if not user.check_password(current_password):
+            flash('Current password is incorrect!', 'danger')
+            return redirect(url_for('change_password'))
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match!', 'danger')
+            return redirect(url_for('change_password'))
+        
+        if len(new_password) < 6:
+            flash('Password must be at least 6 characters long!', 'danger')
+            return redirect(url_for('change_password'))
+        
+        user.set_password(new_password)
+        db.session.commit()
+        flash('Password changed successfully!', 'success')
+        return redirect(url_for('home'))
+    
+    return render_template('change_password.html')
+
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            token = user.generate_reset_token()
+            db.session.commit()
+            
+            # Generate reset link
+            reset_link = url_for('reset_password', token=token, _external=True)
+            
+            # Display the link (in production, you'd send this via email)
+            flash(f'Password reset link: {reset_link}', 'info')
+            return redirect(url_for('login'))
+        else:
+            flash('If an account with that email exists, a reset link has been generated.', 'info')
+            return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user = User.query.filter_by(reset_token=token).first()
+    
+    if not user or not user.verify_reset_token(token):
+        flash('Invalid or expired reset link!', 'danger')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        if new_password != confirm_password:
+            flash('Passwords do not match!', 'danger')
+            return redirect(url_for('reset_password', token=token))
+        
+        if len(new_password) < 6:
+            flash('Password must be at least 6 characters long!', 'danger')
+            return redirect(url_for('reset_password', token=token))
+        
+        user.set_password(new_password)
+        user.reset_token = None
+        user.reset_token_expiry = None
+        db.session.commit()
+        
+        flash('Password reset successful! You can now login.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', token=token)
 
 
 
