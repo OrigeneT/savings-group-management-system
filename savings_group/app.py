@@ -614,7 +614,6 @@ from flask import make_response
 def contributions_report():
     year = request.args.get('year', datetime.now().year, type=int)
     members = Member.query.order_by(Member.first_name, Member.last_name).all()
-    # months = [f"{year}-{m}" for m in range(1, 13)]
     months = [f"{year}-{m:02d}" for m in range(1, 13)]
     month_labels = [datetime(year, m, 1).strftime("%b-%Y") for m in range(1, 13)]
 
@@ -644,6 +643,11 @@ def contributions_report():
     # Prepare data for each sheet
     def build_sheet(contrib_map, label):
         rows = []
+        # Initialize totals dictionary
+        totals = {'Member': 'TOTAL', 'Accounts': ''}
+        month_totals = {mlabel: 0 for mlabel in month_labels}
+        grand_total = 0
+        
         for member in members:
             row = {
                 'Member': f"{member.first_name} {member.last_name}",
@@ -654,13 +658,26 @@ def contributions_report():
                 paid = contrib_map.get(member.id, {}).get(month, 0) or 0
                 row[mlabel] = paid
                 total += paid
+                month_totals[mlabel] += paid
             row['Total'] = total
+            grand_total += total
             rows.append(row)
+        
+        # Add totals row
+        totals.update(month_totals)
+        totals['Total'] = grand_total
+        rows.append(totals)
+        
         return rows
-    
 
     def build_combined_sheet():
         combined_rows = []
+        # Initialize totals dictionary
+        totals = {'Member': 'TOTAL', 'Accounts': '', 'Membership Fee': 0}
+        month_totals = {mlabel: 0 for mlabel in month_labels}
+        grand_total = 0
+        total_membership_fees = 0
+        
         for member in members:
             row = {
                 'Member': f"{member.first_name} {member.last_name}",
@@ -675,16 +692,27 @@ def contributions_report():
                 )
                 row[mlabel] = paid
                 total += paid
+                month_totals[mlabel] += paid
             row['Total'] = total
+            grand_total += total
 
             # Add membership fee for the year
             membership_fee = MembershipFee.query.filter_by(
                 member_id=member.id,
                 year=year
             ).first()
-            row['Membership Fee'] = membership_fee.total_amount if membership_fee else 0
+            fee_amount = membership_fee.total_amount if membership_fee else 0
+            row['Membership Fee'] = fee_amount
+            total_membership_fees += fee_amount
             
             combined_rows.append(row)
+        
+        # Add totals row
+        totals.update(month_totals)
+        totals['Total'] = grand_total
+        totals['Membership Fee'] = total_membership_fees
+        combined_rows.append(totals)
+        
         return combined_rows
 
     combined_rows = build_combined_sheet()
@@ -692,17 +720,28 @@ def contributions_report():
     monthly_rows = build_sheet(monthly_map, 'Monthly')
     social_rows = build_sheet(social_map, 'Social')
 
-
-
-    
     if request.args.get('download') == 'excel':
         import pandas as pd
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Write each sheet
             pd.DataFrame(combined_rows).to_excel(writer, index=False, sheet_name='All Contributions')
             pd.DataFrame(daily_rows).to_excel(writer, index=False, sheet_name='Daily Contributions')
             pd.DataFrame(monthly_rows).to_excel(writer, index=False, sheet_name='Monthly Contributions')
             pd.DataFrame(social_rows).to_excel(writer, index=False, sheet_name='Social Contributions')
+            
+            # Format the Excel file to make totals row bold
+            from openpyxl.styles import Font, PatternFill
+            
+            for sheet_name in writer.sheets:
+                worksheet = writer.sheets[sheet_name]
+                max_row = worksheet.max_row
+                
+                # Make the last row (totals) bold and with a background color
+                for cell in worksheet[max_row]:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+        
         output.seek(0)
         return send_file(
             output,
@@ -711,7 +750,7 @@ def contributions_report():
             as_attachment=True
         )
 
-    # For web view, you can show one sheet (e.g., daily) or summarize as before
+    # For web view, show combined contributions
     return render_template(
         'contributions_report.html',
         year=year,
@@ -1023,8 +1062,8 @@ def download_list_of_members():
 def download_list_of_contributions():
     df = get_list_of_contributions()
     list_of_contributions = pd.DataFrame(df.fetchall(), columns=df.keys())
-    list_of_contributions = list_of_contributions[['id', 'member_id','first_name','last_name', 'month', 'contrib_type', 'contrib_time', 'daily_contr_amount', 'monthly_contr_amount', 'social_contr_amount', 'date_of_record_reg', 'late_days', 'penalty_amount', 'total_paid', 'comment']]
-
+    list_of_contributions = list_of_contributions[['member_id','first_name','last_name', 'month', 'contrib_type', 'contrib_time', 'daily_contr_amount', 'monthly_contr_amount', 'social_contr_amount', 'date_of_record_reg', 'late_days', 'penalty_amount', 'total_paid', 'comment']]
+    list_of_contributions.insert(0, 'No', range(1, len(list_of_contributions) + 1))
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         list_of_contributions.to_excel(writer, index=False, sheet_name='Contributions')

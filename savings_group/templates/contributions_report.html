@@ -22,7 +22,7 @@
     </thead>
     <tbody>
         {% for row in report_rows %}
-        <tr>
+        <tr {% if row.Member == 'TOTAL' %}style="font-weight: bold; background-color: #fff3cd;"{% endif %}>
             <td>{{ row.Member }}</td>
             <td>{{ row.Accounts }}</td>
             <td>{{ row['Membership Fee'] }}</td>
